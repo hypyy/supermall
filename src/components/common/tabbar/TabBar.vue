@@ -14,7 +14,7 @@
   @import "~assets/css/base.css";
   #tab-bar{
     display: flex;
-    position:absolute;
+    position:fixed;
     bottom: 0;
     left: 0;
     right: 0;
