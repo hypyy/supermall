@@ -3,15 +3,23 @@
         <NavBar class="home-nav">
             <div slot="center">购物街</div>
         </NavBar>
+        <TabControl :titles="titles"
+                    @tabClick="tabClick"
+                    ref="tabControl1"
+                    class="tab-control"
+                    v-show="isTabfixed"></TabControl>
         <Scroll class="content"
                 ref="scroll"
                 :probe-type=3
                 :pull-up-load="true"
-                @scroll="contentscroll" @pullingUp="loadMore">
-            <HomeSwiper :banners="banners"></HomeSwiper>
+                @scroll="contentscroll"
+                @pullingUp="loadMore">
+            <HomeSwiper :banners="banners" @swiperImageLoad="swiperImageLoad"></HomeSwiper>
             <RecommendView :recommends="recommends"></RecommendView>
             <FeatureView></FeatureView>
-            <TabControl class="tab-control" :titles="titles" @tabClick="tabClick"></TabControl>
+            <TabControl :titles="titles"
+                        @tabClick="tabClick"
+                        ref="tabControl2"></TabControl>
             <goods-list :goods="showGoods"></goods-list>
         </Scroll>
 <!--        @click.native是对组件的监听事件-->
@@ -32,6 +40,7 @@
     import BackTop from "components/content/backTop/BackTop";
 
     import {getHomeMultidata,getHomeGoods} from "network/home";
+    import {debounce} from "common/utils";
 
     import BScroll from 'better-scroll'
 
@@ -59,18 +68,35 @@
                     'sell':{page:0,list:[]}
                 },
                 currentType:'pop',
-                isShow:false
+                isShow:false,
+                taboffsetTop:0,
+                isTabfixed:false
             }
         },
+        //created:在模板渲染成html前调用，即通常初始化某些属性值，然后再渲染成视图。
+        // mounted:在模板渲染成html后调用，通常是初始化页面完成后，再对html的dom节点进行一些需要的操作。
         created() {
             //1.请求多个数据
             //把这个封装到methods里面可以更直观的反应出created调用了什么函数
             this.getHomeMultidata()
 
-            //请求商品数据
+            //2.请求商品数据
             this.getHomeGoods('pop')
             this.getHomeGoods('new')
             this.getHomeGoods('sell')
+
+        },
+        mounted() {
+            //图片加载完成过后的事件监听
+            const refresh=debounce(this.$refs.scroll.refresh,500)
+            // 3.监听item中图片加载完成
+            this.$bus.$on('itemImageLoad',()=>{
+                refresh()
+            })
+
+            //2.获取tabControl的offsetTop
+            //所有的组件都有一个属性$el：用于获取组件中的元素
+            // console.log(this.$refs.tabControl.$el.offsetTop);
         },
         computed:{
             showGoods(){
@@ -93,6 +119,8 @@
                          this.currentType='sell';
                          break
                 }
+                this.$refs.tabControl1.currentIndex=index
+                this.$refs.tabControl2.currentIndex=index
              },
             backClick(){
                 //使其回到顶部，用ref来链接组件与组件之间的关系
@@ -105,11 +133,19 @@
                 //     this.isShow=false
                 // }
                 // or
+                //1.判断BackTop是否显示
                 this.isShow=(-position.y)>1000
+
+                // 2.决定tabControl是否吸顶(position:fixed)
+                this.isTabfixed=(-position.y)>this.taboffsetTop
+
             },
             loadMore(){
                 this.getHomeGoods(this.currentType)
                 this.$refs.scroll.finishPullUp()
+            },
+            swiperImageLoad(){
+                this.taboffsetTop=this.$refs.tabControl2.$el.offsetTop;
             },
             /*
              * 网络请求相关的方法
@@ -133,29 +169,34 @@
 </script>
 
 <style scoped>
-    #home{
-        padding-top: 44px;
-        padding-bottom: 50px;
+    #home {
+        /*padding-top: 44px;*/
         height: 100vh;
+        position: relative;
     }
 
-    .home-nav{
-        background: var(--color-tint);
-        color: white;
+    .home-nav {
+        background-color: var(--color-tint);
+        color: #fff;
 
-        position: fixed;
+        /*position: fixed;*/
+        /*left: 0;*/
+        /*right: 0;*/
+        /*top: 0;*/
+        /*z-index: 9;*/
+    }
+
+    .tab-control {
+        position: relative;
+        z-index: 9;
+    }
+
+    .content {
+        overflow: hidden;
+        position: absolute;
+        top: 44px;
+        bottom: 49px;
         left: 0;
         right: 0;
-        top: 0;
-        z-index: 99;
-    }
-    .tab-control{
-        position: sticky;
-        top: 44px;
-        z-index: 20;
-    }
-    .content{
-        height: calc(100%);
-        overflow: hidden;
     }
 </style>
