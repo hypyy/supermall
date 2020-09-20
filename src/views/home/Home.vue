@@ -70,7 +70,9 @@
                 currentType:'pop',
                 isShow:false,
                 taboffsetTop:0,
-                isTabfixed:false
+                isTabfixed:false,
+                saveY:0,
+                itemImageListener:null
             }
         },
         //created:在模板渲染成html前调用，即通常初始化某些属性值，然后再渲染成视图。
@@ -86,13 +88,24 @@
             this.getHomeGoods('sell')
 
         },
+        activated() {
+            this.$refs.scroll.scrollTo(0,this.saveY,1)
+            this.$refs.scroll.refresh()
+        },
+        deactivated() {
+            //保存Y值
+            this.saveY=this.$refs.scroll.getScrollY()
+            //取消全局时间的监听
+            this.$bus.$off('itemImageLoad',this.itemImageListener)
+    },
         mounted() {
             //图片加载完成过后的事件监听
             const refresh=debounce(this.$refs.scroll.refresh,500)
             // 3.监听item中图片加载完成
-            this.$bus.$on('itemImageLoad',()=>{
+            this.itemImageListener=()=>{
                 refresh()
-            })
+            }
+            this.$bus.$on('itemImageLoad',this.itemImageListener)
 
             //2.获取tabControl的offsetTop
             //所有的组件都有一个属性$el：用于获取组件中的元素
@@ -126,6 +139,10 @@
                 //使其回到顶部，用ref来链接组件与组件之间的关系
                 this.$refs.scroll.scrollTo(0,0,500)
             },
+            //当首页轮播图加载完成之后就可以去取tabControl2到顶部的距离了
+            swiperImageLoad(){
+                this.taboffsetTop=this.$refs.tabControl2.$el.offsetTop;
+            },
             contentscroll(position){
                 // if(-position.y>1000){
                 //     this.isShow=true
@@ -136,6 +153,7 @@
                 //1.判断BackTop是否显示
                 this.isShow=(-position.y)>1000
 
+                // console.log(this.taboffsetTop);
                 // 2.决定tabControl是否吸顶(position:fixed)
                 this.isTabfixed=(-position.y)>this.taboffsetTop
 
@@ -143,9 +161,6 @@
             loadMore(){
                 this.getHomeGoods(this.currentType)
                 this.$refs.scroll.finishPullUp()
-            },
-            swiperImageLoad(){
-                this.taboffsetTop=this.$refs.tabControl2.$el.offsetTop;
             },
             /*
              * 网络请求相关的方法

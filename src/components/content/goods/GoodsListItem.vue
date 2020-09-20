@@ -1,11 +1,10 @@
 <template>
-    <div class="goods-item">
-       <img :src="goodsItem.show.img" @load="imgLoad">
+    <div class="goods-item" @click="itemClick">
+       <img :src="showImage" @load="imgLoad">
         <div class="goods-info">
             <p>{{goodsItem.title}}</p>
             <span class="price">{{goodsItem.price}}</span>
             <span class="collect">{{goodsItem.cfav}}</span>
-
         </div>
     </div>
 </template>
@@ -23,7 +22,24 @@
         },
         methods:{
             imgLoad(){
+                // 用路由的方法做的判断，什么时候发送全局变量
+                // if(this.$router.path.indexOf('/home')){
+                //     this.$bus.$emit('homeitemImageLoad')
+                // }else if(this.$router.path.indexOf('/detail'){
+                //     this.$bus.$emit('detailitemImageLoad')
+                // }
+                //
                 this.$bus.$emit('itemImageLoad')
+
+            },
+            itemClick(){
+                this.$router.push('/detail/' + this.goodsItem.iid)
+            }
+        },
+        computed:{
+            // 为了防止主页商品和详情页推荐商品冲突
+            showImage(){
+                return this.goodsItem.image ||this.goodsItem.show.img
             }
         }
     }
